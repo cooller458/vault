@@ -15,7 +15,7 @@ PERIOD = 41400  # ~12 hours
 MIN_TICK_MOVE = 0
 MAX_TWAP_DEVIATION = 100  # 1%
 TWAP_DURATION = 60  # 60 seconds
-KEEPER = "0x04c82c5791bbbdfbdda3e836ccbef567fdb2ea07"
+KEEPER = ""
 
 
 def main():

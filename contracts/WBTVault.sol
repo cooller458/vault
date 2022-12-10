@@ -17,10 +17,7 @@ import "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 
 import "../interfaces/IVault.sol";
 
-/**
- * @title   WBT Vault
- * @notice  A vault that provides liquidity on Uniswap V3.
- */
+
 contract WBTVault is
     IVault,
     IUniswapV3MintCallback,
@@ -74,12 +71,7 @@ contract WBTVault is
     uint256 public accruedProtocolFees0;
     uint256 public accruedProtocolFees1;
 
-    /**
-     * @dev After deploying, strategy needs to be set via `setStrategy()`
-     * @param _pool Underlying Uniswap V3 pool
-     * @param _protocolFee Protocol fee expressed as multiple of 1e-6
-     * @param _maxTotalSupply Cap on total supply
-     */
+
     constructor(
         address _pool,
         uint256 _protocolFee,
@@ -97,20 +89,7 @@ contract WBTVault is
         require(_protocolFee < 1e6, "protocolFee");
     }
 
-    /**
-     * @notice Deposits tokens in proportion to the vault's current holdings.
-     * @dev These tokens sit in the vault and are not used for liquidity on
-     * Uniswap until the next rebalance. Also note it's not necessary to check
-     * if user manipulated price to deposit cheaper, as the value of range
-     * orders can only by manipulated higher.
-     * @param amount0Desired Max amount of token0 to deposit
-     * @param amount1Desired Max amount of token1 to deposit
-     * @param amount0Min Revert if resulting `amount0` is less than this
-     * @param amount1Min Revert if resulting `amount1` is less than this
-     * @param to Recipient of shares
-     * @return shares Number of shares minted
-     * @return amount0 Amount of token0 deposited
-     * @return amount1 Amount of token1 deposited
+eturn amount1 Amount of token1 deposited
      */
     function deposit(
         uint256 amount0Desired,
@@ -131,11 +110,11 @@ contract WBTVault is
         require(amount0Desired > 0 || amount1Desired > 0, "amount0Desired or amount1Desired");
         require(to != address(0) && to != address(this), "to");
 
-        // Poke positions so vault's current holdings are up-to-date
+
         _poke(baseLower, baseUpper);
         _poke(limitLower, limitUpper);
 
-        // Calculate amounts proportional to vault's holdings
+  
         (shares, amount0, amount1) = _calcSharesAndAmounts(amount0Desired, amount1Desired);
         require(shares > 0, "shares");
         require(amount0 >= amount0Min, "amount0Min");
@@ -151,9 +130,7 @@ contract WBTVault is
         require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
     }
 
-    /// @dev Do zero-burns to poke a position on Uniswap so earned fees are
-    /// updated. Should be called if total amounts needs to include up-to-date
-    /// fees.
+
     function _poke(int24 tickLower, int24 tickUpper) internal {
         (uint128 liquidity, , , , ) = _position(tickLower, tickUpper);
         if (liquidity > 0) {
@@ -161,9 +138,7 @@ contract WBTVault is
         }
     }
 
-    /// @dev Calculates the largest possible `amount0` and `amount1` such that
-    /// they're in the same proportion as total amounts, but not greater than
-    /// `amount0Desired` and `amount1Desired` respectively.
+
     function _calcSharesAndAmounts(uint256 amount0Desired, uint256 amount1Desired)
         internal
         view
@@ -201,15 +176,7 @@ contract WBTVault is
         }
     }
 
-    /**
-     * @notice Withdraws tokens in proportion to the vault's holdings.
-     * @param shares Shares burned by sender
-     * @param amount0Min Revert if resulting `amount0` is smaller than this
-     * @param amount1Min Revert if resulting `amount1` is smaller than this
-     * @param to Recipient of tokens
-     * @return amount0 Amount of token0 sent to recipient
-     * @return amount1 Amount of token1 sent to recipient
-     */
+
     function withdraw(
         uint256 shares,
         uint256 amount0Min,
@@ -246,7 +213,6 @@ contract WBTVault is
         emit Withdraw(msg.sender, to, shares, amount0, amount1);
     }
 
-    /// @dev Withdraws share of liquidity in a range from Uniswap pool.
     function _burnLiquidityShare(
         int24 tickLower,
         int24 tickUpper,
@@ -266,13 +232,7 @@ contract WBTVault is
         }
     }
 
-    /**
-     * @notice Updates vault's positions. Can only be called by the strategy.
-     * @dev Two orders are placed - a base order and a limit order. The base
-     * order is placed first with as much liquidity as possible. This order
-     * should use up all of one token, leaving only the other one. This excess
-     * amount is then placed as a single-sided bid or ask order.
-     */
+
     function rebalance(
         int256 swapAmount,
         uint160 sqrtPriceLimitX96,
@@ -292,7 +252,7 @@ contract WBTVault is
         require(_bidUpper <= tick, "bidUpper");
         require(_askLower > tick, "askLower"); // inequality is strict as tick is rounded down
 
-        // Withdraw all current liquidity from Uniswap pool
+
         {
             (uint128 baseLiquidity, , , , ) = _position(baseLower, baseUpper);
             (uint128 limitLiquidity, , , , ) = _position(limitLower, limitUpper);
@@ -300,7 +260,6 @@ contract WBTVault is
             _burnAndCollect(limitLower, limitUpper, limitLiquidity);
         }
 
-        // Emit snapshot to record balances and supply
         uint256 balance0 = getBalance0();
         uint256 balance1 = getBalance1();
         emit Snapshot(tick, balance0, balance1, totalSupply());
@@ -317,7 +276,6 @@ contract WBTVault is
             balance1 = getBalance1();
         }
 
-        // Place base order on Uniswap
         uint128 liquidity = _liquidityForAmounts(_baseLower, _baseUpper, balance0, balance1);
         _mintLiquidity(_baseLower, _baseUpper, liquidity);
         (baseLower, baseUpper) = (_baseLower, _baseUpper);
@@ -325,7 +283,7 @@ contract WBTVault is
         balance0 = getBalance0();
         balance1 = getBalance1();
 
-        // Place bid or ask order on Uniswap depending on which token is left
+
         uint128 bidLiquidity = _liquidityForAmounts(_bidLower, _bidUpper, balance0, balance1);
         uint128 askLiquidity = _liquidityForAmounts(_askLower, _askUpper, balance0, balance1);
         if (bidLiquidity > askLiquidity) {
@@ -346,8 +304,7 @@ contract WBTVault is
         require(tickUpper % _tickSpacing == 0, "tickUpper % tickSpacing");
     }
 
-    /// @dev Withdraws liquidity from a range and collects all fees in the
-    /// process.
+
     function _burnAndCollect(
         int24 tickLower,
         int24 tickUpper,
@@ -404,11 +361,7 @@ contract WBTVault is
         }
     }
 
-    /**
-     * @notice Calculates the vault's total holdings of token0 and token1 - in
-     * other words, how much of each token the vault would hold if it withdrew
-     * all its liquidity from Uniswap.
-     */
+
     function getTotalAmounts() public view override returns (uint256 total0, uint256 total1) {
         (uint256 baseAmount0, uint256 baseAmount1) = getPositionAmounts(baseLower, baseUpper);
         (uint256 limitAmount0, uint256 limitAmount1) =
@@ -417,11 +370,7 @@ contract WBTVault is
         total1 = getBalance1().add(baseAmount1).add(limitAmount1);
     }
 
-    /**
-     * @notice Amounts of token0 and token1 held in vault's position. Includes
-     * owed fees but excludes the proportion of fees that will be paid to the
-     * protocol. Doesn't include fees accrued since last poke.
-     */
+
     function getPositionAmounts(int24 tickLower, int24 tickUpper)
         public
         view
@@ -437,21 +386,17 @@ contract WBTVault is
         amount1 = amount1.add(uint256(tokensOwed1).mul(oneMinusFee).div(1e6));
     }
 
-    /**
-     * @notice Balance of token0 in vault not used in any position.
-     */
+
     function getBalance0() public view returns (uint256) {
         return token0.balanceOf(address(this)).sub(accruedProtocolFees0);
     }
 
-    /**
-     * @notice Balance of token1 in vault not used in any position.
-     */
+
     function getBalance1() public view returns (uint256) {
         return token1.balanceOf(address(this)).sub(accruedProtocolFees1);
     }
 
-    /// @dev Wrapper around `IUniswapV3Pool.positions()`.
+
     function _position(int24 tickLower, int24 tickUpper)
         internal
         view
@@ -467,7 +412,7 @@ contract WBTVault is
         return pool.positions(positionKey);
     }
 
-    /// @dev Wrapper around `LiquidityAmounts.getAmountsForLiquidity()`.
+
     function _amountsForLiquidity(
         int24 tickLower,
         int24 tickUpper,
@@ -483,7 +428,7 @@ contract WBTVault is
             );
     }
 
-    /// @dev Wrapper around `LiquidityAmounts.getLiquidityForAmounts()`.
+
     function _liquidityForAmounts(
         int24 tickLower,
         int24 tickUpper,
@@ -501,13 +446,13 @@ contract WBTVault is
             );
     }
 
-    /// @dev Casts uint256 to uint128 with overflow check.
+
     function _toUint128(uint256 x) internal pure returns (uint128) {
         assert(x <= type(uint128).max);
         return uint128(x);
     }
 
-    /// @dev Callback for Uniswap V3 pool.
+
     function uniswapV3MintCallback(
         uint256 amount0,
         uint256 amount1,
@@ -518,7 +463,7 @@ contract WBTVault is
         if (amount1 > 0) token1.safeTransfer(msg.sender, amount1);
     }
 
-    /// @dev Callback for Uniswap V3 pool.
+
     function uniswapV3SwapCallback(
         int256 amount0Delta,
         int256 amount1Delta,
@@ -529,9 +474,7 @@ contract WBTVault is
         if (amount1Delta > 0) token1.safeTransfer(msg.sender, uint256(amount1Delta));
     }
 
-    /**
-     * @notice Used to collect accumulated protocol fees.
-     */
+
     function collectProtocol(
         uint256 amount0,
         uint256 amount1,
@@ -543,9 +486,7 @@ contract WBTVault is
         if (amount1 > 0) token1.safeTransfer(to, amount1);
     }
 
-    /**
-     * @notice Removes tokens accidentally sent to this vault.
-     */
+
     function sweep(
         IERC20 token,
         uint256 amount,
@@ -555,37 +496,24 @@ contract WBTVault is
         token.safeTransfer(to, amount);
     }
 
-    /**
-     * @notice Used to set the strategy contract that determines the position
-     * ranges and calls rebalance(). Must be called after this vault is
-     * deployed.
-     */
+
+  
     function setStrategy(address _strategy) external onlyGovernance {
         strategy = _strategy;
     }
 
-    /**
-     * @notice Used to change the protocol fee charged on pool fees earned from
-     * Uniswap, expressed as multiple of 1e-6.
-     */
+
     function setProtocolFee(uint256 _protocolFee) external onlyGovernance {
         require(_protocolFee < 1e6, "protocolFee");
         protocolFee = _protocolFee;
     }
 
-    /**
-     * @notice Used to change deposit cap for a guarded launch or to ensure
-     * vault doesn't grow too large relative to the pool. Cap is on total
-     * supply rather than amounts of token0 and token1 as those amounts
-     * fluctuate naturally over time.
-     */
+
     function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyGovernance {
         maxTotalSupply = _maxTotalSupply;
     }
 
-    /**
-     * @notice Removes liquidity in case of emergency.
-     */
+
     function emergencyBurn(
         int24 tickLower,
         int24 tickUpper,
@@ -595,18 +523,12 @@ contract WBTVault is
         pool.collect(address(this), tickLower, tickUpper, type(uint128).max, type(uint128).max);
     }
 
-    /**
-     * @notice Governance address is not updated until the new governance
-     * address has called `acceptGovernance()` to accept this responsibility.
-     */
+
     function setGovernance(address _governance) external onlyGovernance {
         pendingGovernance = _governance;
     }
 
-    /**
-     * @notice `setGovernance()` should be called by the existing governance
-     * address prior to calling this function.
-     */
+
     function acceptGovernance() external {
         require(msg.sender == pendingGovernance, "pendingGovernance");
         governance = msg.sender;

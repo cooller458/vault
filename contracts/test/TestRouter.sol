@@ -9,11 +9,7 @@ import "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.so
 import "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
-/**
- * @title  TestRouter
- * @dev    DO NOT USE IN PRODUCTION. This is only intended to be used for
- *         tests and lacks slippage and callback caller checks.
- */
+
 contract TestRouter is IUniswapV3MintCallback, IUniswapV3SwapCallback {
     using SafeERC20 for IERC20;
 

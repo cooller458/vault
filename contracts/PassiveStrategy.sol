@@ -9,32 +9,6 @@ import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "./WBTVault.sol";
 import "../interfaces/IStrategy.sol";
 
-/**
- * @title   Passive Strategy
- * @notice  Rebalancing strategy for WBT Vault that maintains the two
- *          following range orders:
- *
- *          1. Base order is placed between X - B and X + B + TS.
- *          2. Limit order is placed between X - L and X, or between X + TS
- *             and X + L + TS, depending on which token it holds more of.
- *
- *          where:
- *
- *              X = current tick rounded down to multiple of tick spacing
- *              TS = tick spacing
- *              B = base threshold
- *              L = limit threshold
- *
- *          Note that after these two orders, the vault should have deposited
- *          all its tokens and should only have a few wei left.
- *
- *          Because the limit order tries to sell whichever token the vault
- *          holds more of, the vault's holdings will have a tendency to get
- *          closer to a 1:1 balance. This enables it to continue providing
- *          liquidity without running out of inventory of either token, and
- *          achieves this without the need to swap directly on Uniswap and pay
- *          fees.
- */
 contract PassiveStrategy is IStrategy {
     using SafeMath for uint256;
 
@@ -53,16 +27,6 @@ contract PassiveStrategy is IStrategy {
     uint256 public lastTimestamp;
     int24 public lastTick;
 
-    /**
-     * @param _vault Underlying WBT Vault
-     * @param _baseThreshold Used to determine base order range
-     * @param _limitThreshold Used to determine limit order range
-     * @param _period Can only rebalance if this length of time has passed
-     * @param _minTickMove Can only rebalance if price has moved at least this much
-     * @param _maxTwapDeviation Max deviation from TWAP during rebalance
-     * @param _twapDuration TWAP duration in seconds for deviation check
-     * @param _keeper Account that can call `rebalance()`
-     */
     constructor(
         address _vault,
         int24 _baseThreshold,
@@ -95,12 +59,7 @@ contract PassiveStrategy is IStrategy {
         require(_twapDuration > 0, "twapDuration must be > 0");
 
         (, lastTick, , , , , ) = _pool.slot0();
-    }
-
-    /**
-     * @notice Calculates new ranges for orders and calls `vault.rebalance()`
-     * so that vault can update its positions. Can only be called by keeper.
-     */
+/
     function rebalance() external override {
         require(shouldRebalance(), "cannot rebalance");
 
@@ -171,8 +130,6 @@ contract PassiveStrategy is IStrategy {
         return int24((tickCumulatives[1] - tickCumulatives[0]) / _twapDuration);
     }
 
-    /// @dev Rounds tick down towards negative infinity so that it's a multiple
-    /// of `tickSpacing`.
     function _floor(int24 tick) internal view returns (int24) {
         int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--;
@@ -218,7 +175,6 @@ contract PassiveStrategy is IStrategy {
         twapDuration = _twapDuration;
     }
 
-    /// @dev Uses same governance as underlying vault.
     modifier onlyGovernance {
         require(msg.sender == vault.governance(), "governance");
         _;

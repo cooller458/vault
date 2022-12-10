@@ -12,8 +12,8 @@ from math import floor, sqrt
 import time
 
 
-# Uniswap v3 factory on Rinkeby
-FACTORY = "0xAE28628c0fdFb5e54d60FEDC6C9085199aec14dF"
+
+FACTORY = ""
 
 PROTOCOL_FEE = 10000
 MAX_TOTAL_SUPPLY = 1e32
